@@ -1,0 +1,1 @@
+python detect.py --weights yolov5s.pt --source species_img_list_resized_300.txt --visualize --save-txt --project feat_extract/resized_300

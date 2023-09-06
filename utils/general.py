@@ -867,6 +867,7 @@ def non_max_suppression(
         prediction,
         conf_thres=0.25,
         iou_thres=0.45,
+        sep_conf=False,
         classes=None,
         agnostic=False,
         multi_label=False,
@@ -924,8 +925,17 @@ def non_max_suppression(
         if not x.shape[0]:
             continue
 
+        # Clone x to x_uc 
+        x_uc = torch.clone(x) # x for unknown classes
         # Compute conf
         x[:, 5:] *= x[:, 4:5]  # conf = obj_conf * cls_conf
+        confs = x_uc[:, 4:]
+        # cls_conf = x_uc[:,5:]
+        # confs = torch.cat((obj_conf, cls_conf), 1)
+        
+        # print(f'Confs shape: {confs.shape}')
+        # print(obj_conf.shape)
+        # print(cls_conf.shape)
 
         # Box/Mask
         box = xywh2xyxy(x[:, :4])  # center_x, center_y, width, height) to (x1, y1, x2, y2)
@@ -934,11 +944,20 @@ def non_max_suppression(
         # Detections matrix nx6 (xyxy, conf, cls)
         if multi_label:
             i, j = (x[:, 5:mi] > conf_thres).nonzero(as_tuple=False).T
-            x = torch.cat((box[i], x[i, 5 + j, None], j[:, None].float(), mask[i]), 1)
+            if sep_conf:
+                x = torch.cat((box[i], confs[i, 1 + j, None], j[:, None].float(), mask[i], confs[i, 0:1]), 1)
+                # print(f'this is X: {x.shape}')
+            else:
+                x = torch.cat((box[i], x[i, 5 + j, None], j[:, None].float(), mask[i]), 1)
+            
         else:  # best class only
             conf, j = x[:, 5:mi].max(1, keepdim=True)
-            x = torch.cat((box, conf, j.float(), mask), 1)[conf.view(-1) > conf_thres]
-
+            if sep_conf:
+                x = torch.cat((box, conf, j.float(), mask, confs[:, 0:1]), 1)[conf.view(-1) > conf_thres]
+                # print(f'this is X: {x.shape}')
+            else:
+                x = torch.cat((box, conf, j.float(), mask), 1)[conf.view(-1) > conf_thres]
+                
         # Filter by class
         if classes is not None:
             x = x[(x[:, 5:6] == torch.tensor(classes, device=x.device)).any(1)]

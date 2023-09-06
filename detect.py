@@ -66,6 +66,7 @@ def run(
         save_txt=False,  # save results to *.txt
         save_csv=False,  # save results in CSV format
         save_conf=False,  # save confidences in --save-txt labels
+        sep_conf=False,
         save_crop=False,  # save cropped prediction boxes
         nosave=False,  # do not save images/videos
         classes=None,  # filter by class: --class 0, or --class 0 2 3
@@ -129,10 +130,21 @@ def run(
         with dt[1]:
             visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
             pred = model(im, augment=augment, visualize=visualize)
+            print(f'before nms: {len(pred)}')
+            print(pred[0].shape)
+            print(pred[0][0,0,:])
+            print(len(pred[1]))
+            print(pred[1][0].shape)
+            print(pred[1][1].shape)
+            print(pred[1][2].shape)
 
         # NMS
         with dt[2]:
-            pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+            pred = non_max_suppression(pred, conf_thres, iou_thres, sep_conf, classes, agnostic_nms, max_det=max_det)
+            print('='*20)
+            print(f'after nms: {len(pred)}')
+            print(pred[0].shape)
+            # print(pred[0])
 
         # Second-stage classifier (optional)
         # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
@@ -237,6 +249,8 @@ def run(
         LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
     if update:
         strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
+        
+ 
 
 
 def parse_opt():
@@ -253,6 +267,7 @@ def parse_opt():
     parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
     parser.add_argument('--save-csv', action='store_true', help='save results in CSV format')
     parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
+    parser.add_argument('--sep-conf', action='store_true', help='separate confidences in output')
     parser.add_argument('--save-crop', action='store_true', help='save cropped prediction boxes')
     parser.add_argument('--nosave', action='store_true', help='do not save images/videos')
     parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --classes 0, or --classes 0 2 3')
