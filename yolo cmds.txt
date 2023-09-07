@@ -8,4 +8,4 @@ python detect.py --weights yolov5_revset_283.pt --source data/videos/lc2015_vide
 
 python val.py --data "C:\Users\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\fc2015_yolo_uc_easy\data.yaml" --weights yolov5_uc_easy.pt --task test --verbose --save-txt --save-conf --save-json --save-hybrid --sep-conf
 
-python val.py --data "C:\Users\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\fc2015_yolo_uc_hard\data.yaml" --weights yolov5_uc_easy.pt --task test --verbose --save-txt --save-conf --save-json
+python val.py --data "C:\Users\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\fc2015_yolo_uc_hard\data.yaml" --weights yolov5_uc_hard.pt --task test --verbose --save-txt --save-conf --save-json --save-hybrid --name hard

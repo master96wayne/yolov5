@@ -930,12 +930,6 @@ def non_max_suppression(
         # Compute conf
         x[:, 5:] *= x[:, 4:5]  # conf = obj_conf * cls_conf
         confs = x_uc[:, 4:]
-        # cls_conf = x_uc[:,5:]
-        # confs = torch.cat((obj_conf, cls_conf), 1)
-        
-        # print(f'Confs shape: {confs.shape}')
-        # print(obj_conf.shape)
-        # print(cls_conf.shape)
 
         # Box/Mask
         box = xywh2xyxy(x[:, :4])  # center_x, center_y, width, height) to (x1, y1, x2, y2)
@@ -946,7 +940,7 @@ def non_max_suppression(
             i, j = (x[:, 5:mi] > conf_thres).nonzero(as_tuple=False).T
             if sep_conf:
                 x = torch.cat((box[i], confs[i, 1 + j, None], j[:, None].float(), mask[i], confs[i, 0:1]), 1)
-                # print(f'this is X: {x.shape}')
+                
             else:
                 x = torch.cat((box[i], x[i, 5 + j, None], j[:, None].float(), mask[i]), 1)
             
