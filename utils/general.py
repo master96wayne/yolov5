@@ -939,15 +939,14 @@ def non_max_suppression(
         if multi_label:
             i, j = (x[:, 5:mi] > conf_thres).nonzero(as_tuple=False).T
             if sep_conf:
-                x = torch.cat((box[i], confs[i, 1 + j, None], j[:, None].float(), mask[i], confs[i, 0:1]), 1)
-                
+                x = torch.cat((box[i], confs[i, 1 + j, None]*confs[i, 0:1], j[:, None].float(), mask[i], confs[i, 0:1]), 1)
             else:
                 x = torch.cat((box[i], x[i, 5 + j, None], j[:, None].float(), mask[i]), 1)
             
         else:  # best class only
             conf, j = x[:, 5:mi].max(1, keepdim=True)
             if sep_conf:
-                x = torch.cat((box, conf, j.float(), mask, confs[:, 0:1]), 1)[conf.view(-1) > conf_thres]
+                x = torch.cat((box, conf*confs[:, 0:1], j.float(), mask, confs[:, 0:1]), 1)[conf.view(-1) > conf_thres]
                 # print(f'this is X: {x.shape}')
             else:
                 x = torch.cat((box, conf, j.float(), mask), 1)[conf.view(-1) > conf_thres]
