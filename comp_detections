@@ -4,97 +4,176 @@ from pathlib import Path
 import cv2
 import pandas as pd
 import tqdm
+from imutils import build_montages
 
-exp = "hard_sep-conf"
-labels_dir = Path(f'runs/val/{exp}/labels')
-bg_df = pd.DataFrame(columns=['img', 'class', 'cls_conf', 'obj_conf', 'xmin', 'xmax', 'ymin', 'ymax'])
-fg_df = pd.DataFrame(columns=['img', 'class', 'cls_conf', 'obj_conf', 'xmin', 'xmax', 'ymin', 'ymax'])
+def extractLine(line, h, w):
+    c, *xyxy, cls_conf, obj_conf = [float(x) for x in line.strip().split()]
+    c = int(c)
+    # print(line)
+    # print(c)
+    # print(xyxy)
+    bw = xyxy[2]*w
+    bh = xyxy[3]*h
+    cx = xyxy[0]*w
+    cy = xyxy[1]*h
+    xmin = int(np.ceil(cx - bw/2))
+    xmax = int(np.ceil(cx + bw/2))
+    ymin = int(np.ceil(cy - bw/2))
+    ymax = int(np.ceil(cy + bw/2))
 
-for txt in tqdm.tqdm(os.listdir(labels_dir)):
-    
-    im_gt = cv2.imread(
-                os.path.join(
-                 f"C:\\Users\\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\\fc2015_yolo_uc_{exp[:4]}/test/images",
-                 txt.replace('.txt','.jpg')
-                            )
-                        )
-    im_pred = im_gt.copy()
-    h, w = im_gt.shape[:2]
-    # print(f'{h}x{w}')
+    return c, cls_conf, obj_conf, xmin, xmax, ymin, ymax
 
-    with open(Path(labels_dir).joinpath(txt)) as f:
-        lines = f.readlines()
+def txt2df(exp):
+    if 'hybrid' in exp:
+        hybrid_flag = True
+        bg_df = pd.DataFrame(columns=['img', 'class', 'cls_conf', 'obj_conf', 'xmin', 'xmax', 'ymin', 'ymax'])
+        fg_df = pd.DataFrame(columns=['img', 'class', 'cls_conf', 'obj_conf', 'xmin', 'xmax', 'ymin', 'ymax'])
+    else:
         hybrid_flag = False
-        bg_flag = False
-        for i, line in enumerate(lines):
-            c, *xyxy, cls_conf, obj_conf = [float(x) for x in line.strip().split()]
-            c = int(c)
-            # print(line)
-            # print(c)
-            # print(xyxy)
-            bw = xyxy[2]*w
-            bh = xyxy[3]*h
-            cx = xyxy[0]*w
-            cy = xyxy[1]*h
-            xmin = int(np.ceil(cx - bw/2))
-            xmax = int(np.ceil(cx + bw/2))
-            ymin = int(np.ceil(cy - bw/2))
-            ymax = int(np.ceil(cy + bw/2))
+        df = pd.DataFrame(columns=['img', 'class', 'cls_conf', 'obj_conf', 'xmin', 'xmax', 'ymin', 'ymax'])
+        
+    labels_dir = Path(f'runs/val/{exp}/labels')
 
-            if cls_conf==1.0 and obj_conf==1.0:
-                im_gt = cv2.rectangle(im_gt, (xmin,ymin), (xmax,ymax), (255,0,0), 2)
-                hybrid_flag = True
-                
-            elif i==0 and cls_conf!=1.0 and obj_conf!=1.0:
-                im_pred = cv2.rectangle(im_pred, (xmin,ymin), (xmax,ymax), (0,255,0), 4)
-                bg_flag = True
+    for txt in tqdm.tqdm(os.listdir(labels_dir)):
+        im_gt = cv2.imread(
+                    os.path.join(
+                    f"C:\\Users\\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\\fc2015_yolo_uc_{exp[:4]}/test/images",
+                    txt.replace('.txt','.jpg')
+                                )
+                            )
+        # im_pred = im_gt.copy()
+        h, w = im_gt.shape[:2]
+        # print(f'{h}x{w}')
 
-            elif i==1 and hybrid_flag:
-                im_pred = cv2.rectangle(im_pred, (xmin,ymin), (xmax,ymax), (0,255,0), 4)
+        with open(Path(labels_dir).joinpath(txt)) as f:
+            lines = f.readlines()
 
-            else:
-                im_pred = cv2.rectangle(im_pred, (xmin,ymin), (xmax,ymax), (255,0,0), 2)
+            if hybrid_flag:
+                label_flag = False
+                bg_flag = False
 
-            if bg_flag:
-                # bg_df.loc[len(bg_df)] = [txt, c, cls_conf, obj_conf, xmin, xmax, ymin, ymax]
-                df_row = pd.DataFrame(
-                    {
-                    'img': [txt],
-                    'class': [c],
-                    'cls_conf': [cls_conf],
-                    'obj_conf': [obj_conf],
-                    'xmin': [xmin],
-                    'xmax': [xmax],
-                    'ymin': [ymin],
-                    'ymax': [ymax]
-                    }
-                )
-                # print(df_row)
+            for i, line in enumerate(lines):
+                c, cls_conf, obj_conf, xmin, xmax, ymin, ymax = extractLine(line, h, w)
 
-                bg_df = pd.concat([bg_df,df_row], ignore_index=True)
+                if hybrid_flag:
+                    if cls_conf==1.0 and obj_conf==1.0:
+                        # im_gt = cv2.rectangle(im_gt, (xmin,ymin), (xmax,ymax), (255,0,0), 2)
+                        label_flag = True
+                        
+                    elif i==0 and cls_conf!=1.0 and obj_conf!=1.0:
+                        # im_pred = cv2.rectangle(im_pred, (xmin,ymin), (xmax,ymax), (0,255,0), 4)
+                        bg_flag = True
 
-            else:
-                df_row = pd.DataFrame(
-                    {
-                    'img': [txt],
-                    'class': [c],
-                    'cls_conf': [cls_conf],
-                    'obj_conf': [obj_conf],
-                    'xmin': [xmin],
-                    'xmax': [xmax],
-                    'ymin': [ymin],
-                    'ymax': [ymax]
-                    }
-                )
+                    # elif i==1 and label_flag:
+                    #     im_pred = cv2.rectangle(im_pred, (xmin,ymin), (xmax,ymax), (0,255,0), 4)
 
-                fg_df = pd.concat([fg_df,df_row], ignore_index=True)
-                
+                    # else:
+                    #     im_pred = cv2.rectangle(im_pred, (xmin,ymin), (xmax,ymax), (255,0,0), 2)
+
+                    if bg_flag:
+                        # bg_df.loc[len(bg_df)] = [txt, c, cls_conf, obj_conf, xmin, xmax, ymin, ymax]
+                        df_row = pd.DataFrame(
+                            {
+                            'img': [txt],
+                            'class': [c],
+                            'cls_conf': [cls_conf],
+                            'obj_conf': [obj_conf],
+                            'xmin': [xmin],
+                            'xmax': [xmax],
+                            'ymin': [ymin],
+                            'ymax': [ymax]
+                            }
+                        )
+                        # print(df_row)
+
+                        bg_df = pd.concat([bg_df,df_row], ignore_index=True)
+
+                    elif label_flag:
+                        df_row = pd.DataFrame(
+                            {
+                            'img': [txt],
+                            'class': [c],
+                            'cls_conf': [cls_conf],
+                            'obj_conf': [obj_conf],
+                            'xmin': [xmin],
+                            'xmax': [xmax],
+                            'ymin': [ymin],
+                            'ymax': [ymax]
+                            }
+                        )
+
+                        fg_df = pd.concat([fg_df,df_row], ignore_index=True)
+
+                else:
+                    df_row = pd.DataFrame(
+                            {
+                            'img': [txt],
+                            'class': [c],
+                            'cls_conf': [cls_conf],
+                            'obj_conf': [obj_conf],
+                            'xmin': [xmin],
+                            'xmax': [xmax],
+                            'ymin': [ymin],
+                            'ymax': [ymax]
+                            }
+                        )
+                    
+                    df = pd.concat([df,df_row], ignore_index=True)
+                    
 
 
-    # im = np.concatenate((im_gt,im_pred), axis=1)
-    # cv2.imshow('GT', im)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+        # im = np.concatenate((im_gt,im_pred), axis=1)
+        # cv2.imshow('GT', im)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
-bg_df.to_csv('bg_df_detections.csv', index=False)
-fg_df.to_csv('fg_df_detections.csv', index=False)
+    csv_suffix = f'_{exp}'
+    if hybrid_flag:
+        bg_df.to_csv(f'bg_df{csv_suffix}.csv', index=False)
+        fg_df.to_csv(f'fg_df{csv_suffix}.csv', index=False)
+    else:
+        df.to_csv(f'df{csv_suffix}.csv', index=False)
+    print('Done!')
+
+def bestByImg(csvPath):
+    df = pd.read_csv(csvPath)
+    df['conf'] = df.obj_conf * df.cls_conf
+
+    # Sort the DataFrame by 'conf' column in descending order
+    # Use groupby to get the rows with the maximum 'conf' value for each unique 'img'
+    result = (df[df.cls_conf!=1]
+        .sort_values(by='conf', ascending=False)
+        .groupby('img').first().reset_index())
+
+    return result
+
+def buildMontage(df, imgRoot, show=False):
+    images = []
+
+    for imgPath in tqdm.tqdm(df.img):
+        image = cv2.imread(os.path.join(imgRoot, imgPath.replace('txt', 'jpg')))
+        imgRow = df[df['img'] == imgPath]
+        # print(int(xmin))
+        xmin = int(imgRow.xmin)
+        ymin = int(imgRow.ymin)
+        xmax = int(imgRow.xmax)
+        ymax = int(imgRow.ymax)
+        image = cv2.rectangle(image, (xmin,ymin), (xmax,ymax), (0,255,0), 3)
+        images.append(image)
+
+    montages = build_montages(images, (640//3, 640//4), (5,5))
+
+    if show:
+        showMontages(montages)
+
+    return montages
+
+def showMontages(montages):
+    for montage in montages:
+        cv2.imshow('montage', montage)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+# exp = "hard_sep-conf"
+exp = "hard3"
+txt2df(exp)
