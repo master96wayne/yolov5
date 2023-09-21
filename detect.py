@@ -130,20 +130,20 @@ def run(
         with dt[1]:
             visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
             pred = model(im, augment=augment, visualize=visualize)
-            print(f'before nms: {len(pred)}')
-            print(pred[0].shape)
-            print(pred[0][0,0,:])
-            print(len(pred[1]))
-            print(pred[1][0].shape)
-            print(pred[1][1].shape)
-            print(pred[1][2].shape)
+            # print(f'before nms: {len(pred)}')
+            # print(pred[0].shape)
+            # print(pred[0][0,0,:])
+            # print(len(pred[1]))
+            # print(pred[1][0].shape)
+            # print(pred[1][1].shape)
+            # print(pred[1][2].shape)
 
         # NMS
         with dt[2]:
             pred = non_max_suppression(pred, conf_thres, iou_thres, sep_conf, classes, agnostic_nms, max_det=max_det)
-            print('='*20)
-            print(f'after nms: {len(pred)}')
-            print(pred[0].shape)
+            # print('='*20)
+            # print(f'after nms: {len(pred)}')
+            # print(pred[0].shape)
             # print(pred[0])
 
         # Second-stage classifier (optional)
@@ -185,20 +185,35 @@ def run(
                 for c in det[:, 5].unique():
                     n = (det[:, 5] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                
 
                 # Write results
-                for *xyxy, conf, cls in reversed(det):
+                for item in reversed(det):
+                    # print(item)
+                    if sep_conf:
+                        *xyxy, conf, cls, obj_conf = item
+                        obj_str = f'{float(obj_conf):.2f}'
+                    else:
+                        *xyxy, conf, cls = item
+                        
+                    xyxy = torch.tensor(xyxy)
+
                     c = int(cls)  # integer class
                     label = names[c] if hide_conf else f'{names[c]}'
                     confidence = float(conf)
                     confidence_str = f'{confidence:.2f}'
 
                     if save_csv:
-                        write_to_csv(p.name, label, confidence_str)
+                        write_to_csv(p.name, label, confidence_str, obj_str)
 
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                        line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
+                        if save_conf and not sep_conf:
+                            line = (cls, *xywh, conf)
+                        elif sep_conf:
+                            line = (cls, *xywh, conf, obj_conf)
+                        else:
+                            line = (cls, *xywh)  # label format
                         with open(f'{txt_path}.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 

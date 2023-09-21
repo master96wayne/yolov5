@@ -1,0 +1,16 @@
+import numpy as np
+
+box2 = [0,0,1,1] #square with side 1 with p_min in origin
+box1 = [0.5,0.5,1.5,1.5] # square with side 1 with p_min in (0.5,0.5)
+
+#inter should be 0.25
+inter_w = min(box1[2], box2[2]) - max(box1[0], box2[0])
+inter_h = min(box1[3], box2[3]) - max(box1[1], box2[1])
+
+inter = inter_w*inter_h
+
+a1 = (box1[2]-box1[0])*(box1[3]-box1[1])
+a2 = (box2[2]-box2[0])*(box2[3]-box2[1])
+
+iou = inter/(a1 + a2 - inter)
+print(iou)

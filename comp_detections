@@ -12,18 +12,18 @@ def extractLine(line, h, w):
     # print(line)
     # print(c)
     # print(xyxy)
-    bw = xyxy[2]*w
-    bh = xyxy[3]*h
     cx = xyxy[0]*w
     cy = xyxy[1]*h
+    bw = xyxy[2]*w
+    bh = xyxy[3]*h
     xmin = int(np.ceil(cx - bw/2))
     xmax = int(np.ceil(cx + bw/2))
-    ymin = int(np.ceil(cy - bw/2))
-    ymax = int(np.ceil(cy + bw/2))
+    ymin = int(np.ceil(cy - bh/2))
+    ymax = int(np.ceil(cy + bh/2))
 
     return c, cls_conf, obj_conf, xmin, xmax, ymin, ymax
 
-def txt2df(exp):
+def txt2df(exp, task='val'):
     if 'hybrid' in exp:
         hybrid_flag = True
         bg_df = pd.DataFrame(columns=['img', 'class', 'cls_conf', 'obj_conf', 'xmin', 'xmax', 'ymin', 'ymax'])
@@ -32,16 +32,16 @@ def txt2df(exp):
         hybrid_flag = False
         df = pd.DataFrame(columns=['img', 'class', 'cls_conf', 'obj_conf', 'xmin', 'xmax', 'ymin', 'ymax'])
         
-    labels_dir = Path(f'runs/val/{exp}/labels')
+    labels_dir = Path(f'runs/{task}/{exp}/labels')
 
     for txt in tqdm.tqdm(os.listdir(labels_dir)):
         im_gt = cv2.imread(
                     os.path.join(
-                    f"C:\\Users\\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\\fc2015_yolo_uc_{exp[:4]}/test/images",
+                    f"C:\\Users\\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\\fc2015_yolo_uc_{exp[:4]}/unknown_classes/images",
                     txt.replace('.txt','.jpg')
                                 )
                             )
-        # im_pred = im_gt.copy()
+        im_pred = im_gt.copy()
         h, w = im_gt.shape[:2]
         # print(f'{h}x{w}')
 
@@ -57,21 +57,20 @@ def txt2df(exp):
 
                 if hybrid_flag:
                     if cls_conf==1.0 and obj_conf==1.0:
-                        # im_gt = cv2.rectangle(im_gt, (xmin,ymin), (xmax,ymax), (255,0,0), 2)
+                        im_gt = cv2.rectangle(im_gt, (xmin,ymin), (xmax,ymax), (255,0,0), 2)
                         label_flag = True
                         
                     elif i==0 and cls_conf!=1.0 and obj_conf!=1.0:
-                        # im_pred = cv2.rectangle(im_pred, (xmin,ymin), (xmax,ymax), (0,255,0), 4)
+                        im_pred = cv2.rectangle(im_pred, (xmin,ymin), (xmax,ymax), (0,255,0), 4)
                         bg_flag = True
 
-                    # elif i==1 and label_flag:
-                    #     im_pred = cv2.rectangle(im_pred, (xmin,ymin), (xmax,ymax), (0,255,0), 4)
+                    elif i==1 and label_flag:
+                        im_pred = cv2.rectangle(im_pred, (xmin,ymin), (xmax,ymax), (0,255,0), 4)
 
-                    # else:
-                    #     im_pred = cv2.rectangle(im_pred, (xmin,ymin), (xmax,ymax), (255,0,0), 2)
+                    else:
+                        im_pred = cv2.rectangle(im_pred, (xmin,ymin), (xmax,ymax), (255,0,0), 2)
 
                     if bg_flag:
-                        # bg_df.loc[len(bg_df)] = [txt, c, cls_conf, obj_conf, xmin, xmax, ymin, ymax]
                         df_row = pd.DataFrame(
                             {
                             'img': [txt],
@@ -174,6 +173,8 @@ def showMontages(montages):
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
-# exp = "hard_sep-conf"
-exp = "hard3"
-txt2df(exp)
+# exp = "hard_hybrid_sep-conf"
+# exp = "hard3"
+exp = 'hard_uc_hybrid'
+task = 'detect'
+txt2df(exp, task)
