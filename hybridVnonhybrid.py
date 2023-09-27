@@ -75,16 +75,18 @@ def box_iou(box1,box2):
 
     return inter/union if inter/union>0 else 0
 
-bg_hydrid_csv = 'bg_df_hard_hybrid_sep-conf.csv'
-fg_hydrid_csv = 'fg_df_hard_hybrid_sep-conf.csv'
+# bg_hybrid_csv = 'bg_df_hard_hybrid_sep-conf.csv'
+# fg_hybrid_csv = 'fg_df_hard_hybrid_sep-conf.csv'
 hard3_csv = 'df_hard3.csv'
+bg_hybrid_csv = 'bg_df_hard_test_hybrid.csv'
+fg_hybrid_csv = 'fg_df_hard_test_hybrid.csv'
 
-fg_hybrid_df = pd.read_csv(fg_hydrid_csv)
+fg_hybrid_df = pd.read_csv(fg_hybrid_csv)
 fg_hybrid_df['conf'] = fg_hybrid_df.cls_conf * fg_hybrid_df.obj_conf
 label_df = fg_hybrid_df[fg_hybrid_df.conf == 1].reset_index()
 # print(fg_hybrid)
 
-bg_hydrid_df = pd.read_csv(bg_hydrid_csv)
+bg_hybrid_df = pd.read_csv(bg_hybrid_csv)
 
 pred_df = pd.read_csv(hard3_csv)
 # print(pred_df)
@@ -92,7 +94,7 @@ pred_df = pd.read_csv(hard3_csv)
 tp_df = pred_df.merge(label_df, how='inner', on=['img', 'class'], suffixes=['_pred', '_label'])
 tp_df['conf'] = tp_df.cls_conf_pred * tp_df.obj_conf_pred
 # print(tp_df.sort_values(by='conf', ascending=True))
-fp_df = pred_df.merge(bg_hydrid_df, how='inner', on=['img', 'class'], suffixes=['_pred', '_label'])
+fp_df = pred_df.merge(bg_hybrid_df, how='inner', on=['img', 'class'], suffixes=['_pred', '_label'])
 
 fp_df['conf'] = fp_df.cls_conf_pred * fp_df.obj_conf_pred
 # print(fp_df[fp_df.conf>0.5].reset_index())
@@ -123,4 +125,5 @@ for img in tp_df.img.unique():
             tp_df.drop(idx, inplace=True)
 
 # print(tp_df.shape)
-buildMontage(tp_df, imgRoot=imgRoot, show=True)
+# buildMontage(tp_df, imgRoot=imgRoot, show=True)
+tp_df.to_csv('hard_test_det.csv')

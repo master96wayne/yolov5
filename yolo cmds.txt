@@ -6,8 +6,12 @@ python detect.py --weights yolov5_revset_eq.pt --source data/videos/lc2015_video
 
 python detect.py --weights yolov5_revset_283.pt --source data/videos/lc2015_video0.mp4 --save-conf --save-crop --classes 4
 
-python detect.py --weights yolov5_uc_hard.pt --source "C:\Users\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\fc2015_yolo_uc_hard\unknown_classes\images" --save-conf --save-crop --save-txt --sep-conf --name hard_uc
+python detect.py --weights yolov5_uc_hard.pt --source "C:\Users\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\fc2015_yolo_uc_hard\test\images" --save-conf --save-crop --save-txt --sep-conf --name hard_test_hybrid
+
+python detect.py --weights yolov5_uc_easy.pt --source "C:\Users\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\fc2015_yolo_uc_easy\test\images" --save-conf --save-crop --save-txt --sep-conf --name easy_test_real_hybrid
+
+python detect.py --weights yolov5_uc_easy.pt --source "C:\Users\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\fc2015_yolo_uc_easy\unknown_classes\images" --save-conf --save-crop --save-txt --sep-conf --name easy_test_hybrid
 
 python val.py --data "C:\Users\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\fc2015_yolo_uc_easy\data.yaml" --weights yolov5_uc_easy.pt --task test --verbose --save-txt --save-conf --save-json --save-hybrid --name easy
 
-python val.py --data "C:\Users\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\fc2015_yolo_uc_hard\data.yaml" --weights yolov5_uc_hard.pt --task test --verbose --save-txt --save-conf --save-json --save-hybrid --name hard
+python val.py --data "C:\Users\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\fc2015_yolo_uc_easy\data.yaml" --weights yolov5_uc_hard.pt --task test --verbose --save-txt --save-conf --save-json --save-hybrid --name hard

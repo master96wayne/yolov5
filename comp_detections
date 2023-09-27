@@ -6,8 +6,12 @@ import pandas as pd
 import tqdm
 from imutils import build_montages
 
-def extractLine(line, h, w):
-    c, *xyxy, cls_conf, obj_conf = [float(x) for x in line.strip().split()]
+def extractLine(line, h, w, task=None):
+    if task:
+        c, *xyxy, cls_conf, obj_conf = [float(x) for x in line.strip().split()]
+    else:
+        c, *xyxy = [float(x) for x in line.strip().split()]
+
     c = int(c)
     # print(line)
     # print(c)
@@ -21,26 +25,33 @@ def extractLine(line, h, w):
     ymin = int(np.ceil(cy - bh/2))
     ymax = int(np.ceil(cy + bh/2))
 
-    return c, cls_conf, obj_conf, xmin, xmax, ymin, ymax
+    if task:
+        return c, cls_conf, obj_conf, xmin, xmax, ymin, ymax
+    else:
+        return c, xmin, xmax, ymin, ymax
 
-def txt2df(exp, task='val'):
+def txt2df(exp=None, task=None, subset='unknown_classes'):
     if 'hybrid' in exp:
         hybrid_flag = True
-        bg_df = pd.DataFrame(columns=['img', 'class', 'cls_conf', 'obj_conf', 'xmin', 'xmax', 'ymin', 'ymax'])
-        fg_df = pd.DataFrame(columns=['img', 'class', 'cls_conf', 'obj_conf', 'xmin', 'xmax', 'ymin', 'ymax'])
+        if task:
+            bg_df = pd.DataFrame(columns=['img', 'class', 'cls_conf', 'obj_conf', 'xmin', 'xmax', 'ymin', 'ymax'])
+            fg_df = pd.DataFrame(columns=['img', 'class', 'cls_conf', 'obj_conf', 'xmin', 'xmax', 'ymin', 'ymax'])
+        else:
+            df = pd.DataFrame(columns=['img', 'cls', 'xmin', 'xmax', 'ymin', 'ymax'])
     else:
         hybrid_flag = False
         df = pd.DataFrame(columns=['img', 'class', 'cls_conf', 'obj_conf', 'xmin', 'xmax', 'ymin', 'ymax'])
         
-    labels_dir = Path(f'runs/{task}/{exp}/labels')
+    labels_dir = Path(f'runs/{task}/{exp}/labels') if task else f"C:\\Users\\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\\fc2015_yolo_uc_{exp[:4]}/{subset}/labels"
 
     for txt in tqdm.tqdm(os.listdir(labels_dir)):
         im_gt = cv2.imread(
                     os.path.join(
-                    f"C:\\Users\\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\\fc2015_yolo_uc_{exp[:4]}/unknown_classes/images",
+                    f"C:\\Users\\leofi\OneDrive - Universidade de Lisboa\Documents\GitHub\masters\Data\\fc2015_yolo_uc_{exp[:4]}/{subset}/images",
                     txt.replace('.txt','.jpg')
                                 )
                             )
+        
         im_pred = im_gt.copy()
         h, w = im_gt.shape[:2]
         # print(f'{h}x{w}')
@@ -53,9 +64,12 @@ def txt2df(exp, task='val'):
                 bg_flag = False
 
             for i, line in enumerate(lines):
-                c, cls_conf, obj_conf, xmin, xmax, ymin, ymax = extractLine(line, h, w)
+                if task:
+                    c, cls_conf, obj_conf, xmin, xmax, ymin, ymax = extractLine(line, h, w, task)
+                else:
+                    c, xmin, xmax, ymin, ymax = extractLine(line, h, w, task)
 
-                if hybrid_flag:
+                if hybrid_flag and task:
                     if cls_conf==1.0 and obj_conf==1.0:
                         im_gt = cv2.rectangle(im_gt, (xmin,ymin), (xmax,ymax), (255,0,0), 2)
                         label_flag = True
@@ -104,18 +118,30 @@ def txt2df(exp, task='val'):
                         fg_df = pd.concat([fg_df,df_row], ignore_index=True)
 
                 else:
-                    df_row = pd.DataFrame(
-                            {
-                            'img': [txt],
-                            'class': [c],
-                            'cls_conf': [cls_conf],
-                            'obj_conf': [obj_conf],
-                            'xmin': [xmin],
-                            'xmax': [xmax],
-                            'ymin': [ymin],
-                            'ymax': [ymax]
-                            }
-                        )
+                    if task:
+                        df_row = pd.DataFrame(
+                                {
+                                'img': [txt],
+                                'class': [c],
+                                'cls_conf': [cls_conf],
+                                'obj_conf': [obj_conf],
+                                'xmin': [xmin],
+                                'xmax': [xmax],
+                                'ymin': [ymin],
+                                'ymax': [ymax]
+                                }
+                            )
+                    else:
+                        df_row = pd.DataFrame(
+                                {
+                                'img': [txt],
+                                'class': [c],
+                                'xmin': [xmin],
+                                'xmax': [xmax],
+                                'ymin': [ymin],
+                                'ymax': [ymax]
+                                }
+                            )
                     
                     df = pd.concat([df,df_row], ignore_index=True)
                     
@@ -126,8 +152,9 @@ def txt2df(exp, task='val'):
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
 
-    csv_suffix = f'_{exp}'
-    if hybrid_flag:
+    csv_suffix = f'_{exp}' if task else f'_{exp}_gt'
+    
+    if hybrid_flag and task:
         bg_df.to_csv(f'bg_df{csv_suffix}.csv', index=False)
         fg_df.to_csv(f'fg_df{csv_suffix}.csv', index=False)
     else:
@@ -175,6 +202,12 @@ def showMontages(montages):
 
 # exp = "hard_hybrid_sep-conf"
 # exp = "hard3"
-exp = 'hard_uc_hybrid'
+# exp = 'hard_test_hybrid'
+# exp = 'hard'
+# exp = 'easy_test_hybrid'
+exp = 'easy_uc_hybrid'
 task = 'detect'
-txt2df(exp, task)
+# task = 'val'
+subset = 'test'
+# txt2df(exp, task=task)
+txt2df(exp)
